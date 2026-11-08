@@ -19,6 +19,12 @@ class ${pascal}Model extends ${pascal}Entity {
     );
   }
 
+  static List<${pascal}Model> fromJsonList(List<dynamic> jsonList) {
+    return jsonList
+        .map((e) => ${pascal}Model.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -28,25 +34,35 @@ class ${pascal}Model extends ${pascal}Entity {
 ''';
   }
 
-  static String remoteDataSource(String projectName, StringCase feature) {
+  static String remoteDataSource(
+    String projectName,
+    StringCase feature, {
+    bool isList = false,
+  }) {
     final pascal = feature.pascalCase;
     final snake = feature.snakeCase;
+    final returnType = isList ? 'List<${pascal}Model>' : '${pascal}Model';
+    final params = isList ? '' : 'String id';
+    final placeholderReturn = isList
+        ? '${pascal}Model.fromJsonList(const [])'
+        : '${pascal}Model.fromJson(const {})';
+
     return '''
 import 'package:$projectName/core/error/exceptions.dart';
 import 'package:$projectName/features/$snake/data/models/${snake}_model.dart';
 
 abstract class ${pascal}RemoteDataSource {
-  Future<${pascal}Model> get$pascal(String id);
+  Future<$returnType> get$pascal($params);
 }
 
 class ${pascal}RemoteDataSourceImpl implements ${pascal}RemoteDataSource {
   const ${pascal}RemoteDataSourceImpl();
 
   @override
-  Future<${pascal}Model> get$pascal(String id) async {
+  Future<$returnType> get$pascal($params) async {
     try {
       // TODO: Replace with actual API call (e.g., Dio / HttpClient)
-      return ${pascal}Model(id: id);
+      return $placeholderReturn;
     } catch (e) {
       throw ServerException(e.toString());
     }
@@ -55,33 +71,44 @@ class ${pascal}RemoteDataSourceImpl implements ${pascal}RemoteDataSource {
 ''';
   }
 
-  static String localDataSource(String projectName, StringCase feature) {
+  static String localDataSource(
+    String projectName,
+    StringCase feature, {
+    bool isList = false,
+  }) {
     final pascal = feature.pascalCase;
     final snake = feature.snakeCase;
+    final returnType = isList ? 'List<${pascal}Model>' : '${pascal}Model';
+    final cacheParam =
+        isList ? 'List<${pascal}Model> modelsToCache' : '${pascal}Model modelToCache';
+    final placeholderReturn = isList
+        ? '${pascal}Model.fromJsonList(const [])'
+        : '${pascal}Model.fromJson(const {})';
+
     return '''
 import 'package:$projectName/core/error/exceptions.dart';
 import 'package:$projectName/features/$snake/data/models/${snake}_model.dart';
 
 abstract class ${pascal}LocalDataSource {
-  Future<${pascal}Model> getLast$pascal();
-  Future<void> cache$pascal(${pascal}Model modelToCache);
+  Future<$returnType> getLast$pascal();
+  Future<void> cache$pascal($cacheParam);
 }
 
 class ${pascal}LocalDataSourceImpl implements ${pascal}LocalDataSource {
   const ${pascal}LocalDataSourceImpl();
 
   @override
-  Future<${pascal}Model> getLast$pascal() async {
+  Future<$returnType> getLast$pascal() async {
     try {
       // TODO: Fetch from local storage (SharedPreferences / Hive / Isar)
-      return const ${pascal}Model(id: 'cached_id');
+      return $placeholderReturn;
     } catch (e) {
       throw CacheException(e.toString());
     }
   }
 
   @override
-  Future<void> cache$pascal(${pascal}Model modelToCache) async {
+  Future<void> cache$pascal($cacheParam) async {
     // TODO: Save to local storage
   }
 }
@@ -92,9 +119,13 @@ class ${pascal}LocalDataSourceImpl implements ${pascal}LocalDataSource {
     String projectName,
     StringCase feature, {
     bool includeLocal = true,
+    bool isList = false,
   }) {
     final pascal = feature.pascalCase;
     final snake = feature.snakeCase;
+    final returnType = isList ? 'List<${pascal}Entity>' : '${pascal}Entity';
+    final params = isList ? '' : 'String id';
+    final callArgs = isList ? '' : 'id';
 
     final localImport = includeLocal
         ? "import 'package:$projectName/features/$snake/data/datasources/${snake}_local_data_source.dart';\n"
@@ -136,10 +167,10 @@ $localCtorParam    required this.networkInfo,
   });
 
   @override
-  Future<Either<Failure, ${pascal}Entity>> get$pascal(String id) async {
+  Future<Either<Failure, $returnType>> get$pascal($params) async {
     if (await networkInfo.isConnected) {
       try {
-        final remoteData = await remoteDataSource.get$pascal(id);
+        final remoteData = await remoteDataSource.get$pascal($callArgs);
 $cacheCall        return Right(remoteData);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));

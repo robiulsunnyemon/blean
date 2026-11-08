@@ -11,12 +11,16 @@ class RepositoryModifier {
     required String projectName,
     required StringCase feature,
     required StringCase useCase,
+    bool isList = false,
   }) async {
     final featurePascal = feature.pascalCase;
     final featureSnake = feature.snakeCase;
     final methodCamel = useCase.camelCase;
     final useCasePascal = useCase.pascalCase;
     final useCaseSnake = useCase.snakeCase;
+    final returnType =
+        isList ? 'List<${featurePascal}Entity>' : '${featurePascal}Entity';
+    final params = isList ? '' : 'String id';
 
     final featureDir = p.join(projectDir, 'lib', 'features', featureSnake);
 
@@ -31,7 +35,7 @@ class RepositoryModifier {
     if (await repoInterfaceFile.exists()) {
       var content = await repoInterfaceFile.readAsString();
       final methodSignature =
-          'Future<Either<Failure, ${featurePascal}Entity>> $methodCamel(String id);';
+          'Future<Either<Failure, $returnType>> $methodCamel($params);';
       if (!content.contains('$methodCamel(')) {
         final lastBrace = content.lastIndexOf('}');
         if (lastBrace != -1) {
@@ -55,16 +59,19 @@ class RepositoryModifier {
     final repoImplFile = File(repoImplPath);
     if (await repoImplFile.exists()) {
       var content = await repoImplFile.readAsString();
-      if (!content.contains('Future<Either<Failure, ${featurePascal}Entity>> $methodCamel(')) {
+      if (!content.contains('Future<Either<Failure, $returnType>> $methodCamel(')) {
         final lastBrace = content.lastIndexOf('}');
         if (lastBrace != -1) {
+          final remoteCall = isList
+              ? 'await remoteDataSource.get$featurePascal()'
+              : 'await remoteDataSource.get$featurePascal(id)';
           final methodImpl = '''
 
   @override
-  Future<Either<Failure, ${featurePascal}Entity>> $methodCamel(String id) async {
+  Future<Either<Failure, $returnType>> $methodCamel($params) async {
     if (await networkInfo.isConnected) {
       try {
-        final remoteData = await remoteDataSource.get$featurePascal(id);
+        final remoteData = $remoteCall;
         return Right(remoteData);
       } on ServerException catch (e) {
         return Left(ServerFailure(e.message));

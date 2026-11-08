@@ -16,8 +16,9 @@ class CreateCommand extends Command<int> {
       'Create a new Clean Architecture feature or sub-component (get_cli style).\n'
       'Examples:\n'
       '  bclean create feature:auth\n'
-      '  bclean create feature:profile --cubit --no-local\n'
-      '  bclean create usecase:login on auth\n'
+      '  bclean create feature:posts --list --no-local\n'
+      '  bclean create feature:profile --cubit\n'
+      '  bclean create usecase:get_all_posts on posts --list\n'
       '  bclean create bloc:session on auth\n'
       '  bclean create page:register on auth';
 
@@ -28,6 +29,12 @@ class CreateCommand extends Command<int> {
         abbr: 'c',
         negatable: false,
         help: 'Use Cubit instead of BLoC for presentation state management.',
+      )
+      ..addFlag(
+        'list',
+        abbr: 'l',
+        negatable: false,
+        help: 'Generate feature/usecase/bloc/page for a List of items (List<Entity>).',
       )
       ..addFlag(
         'local',
@@ -67,6 +74,7 @@ class CreateCommand extends Command<int> {
 
     final cubitFlag = argResults?['cubit'] as bool? ?? false;
     final useCubit = cubitFlag || config.useCubit;
+    final isList = argResults?['list'] as bool? ?? false;
 
     final localWasParsed = argResults?.wasParsed('local') ?? false;
     final includeLocal = localWasParsed
@@ -117,6 +125,7 @@ class CreateCommand extends Command<int> {
           featureRawName: entityName,
           useCubit: useCubit,
           includeLocal: includeLocal,
+          isList: isList,
           overwrite: overwrite,
         );
         return 0;
@@ -132,6 +141,7 @@ class CreateCommand extends Command<int> {
           projectDir: targetDir,
           featureRawName: targetFeature,
           useCaseRawName: entityName,
+          isList: isList,
           overwrite: overwrite,
         );
         return 0;
@@ -144,6 +154,7 @@ class CreateCommand extends Command<int> {
           featureRawName: targetFeature,
           blocRawName: entityName,
           useCubit: type == 'cubit' || useCubit,
+          isList: isList,
           overwrite: overwrite,
         );
         return 0;
@@ -155,6 +166,7 @@ class CreateCommand extends Command<int> {
           featureRawName: targetFeature,
           pageRawName: entityName,
           useCubit: useCubit,
+          isList: isList,
           overwrite: overwrite,
         );
         return 0;

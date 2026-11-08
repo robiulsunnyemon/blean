@@ -5,17 +5,25 @@ class PresentationTemplates {
   static String bloc(
     String projectName,
     StringCase feature,
-    StringCase blocName,
-  ) {
+    StringCase blocName, {
+    bool isList = false,
+  }) {
     final featurePascal = feature.pascalCase;
     final featureSnake = feature.snakeCase;
     final blocPascal = blocName.pascalCase;
     final blocSnake = blocName.snakeCase;
 
+    final useCaseImport = isList
+        ? "import 'package:$projectName/core/usecases/usecase.dart';\n"
+        : '';
+    final useCaseCall = isList
+        ? 'const NoParams()'
+        : 'Get${featurePascal}Params(id: event.id)';
+
     return '''
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:$projectName/features/$featureSnake/domain/entities/${featureSnake}_entity.dart';
+${useCaseImport}import 'package:$projectName/features/$featureSnake/domain/entities/${featureSnake}_entity.dart';
 import 'package:$projectName/features/$featureSnake/domain/usecases/get_${featureSnake}_usecase.dart';
 
 part '${blocSnake}_event.dart';
@@ -36,7 +44,7 @@ class ${blocPascal}Bloc extends Bloc<${blocPascal}Event, ${blocPascal}State> {
   ) async {
     emit(const ${blocPascal}Loading());
     final result = await get${featurePascal}UseCase(
-      Get${featurePascal}Params(id: event.id),
+      $useCaseCall,
     );
     result.fold(
       (failure) => emit(${blocPascal}Error(failure.message)),
@@ -47,9 +55,30 @@ class ${blocPascal}Bloc extends Bloc<${blocPascal}Event, ${blocPascal}State> {
 ''';
   }
 
-  static String blocEvent(StringCase blocName) {
+  static String blocEvent(
+    StringCase blocName, {
+    bool isList = false,
+  }) {
     final pascal = blocName.pascalCase;
     final snake = blocName.snakeCase;
+
+    if (isList) {
+      return '''
+part of '${snake}_bloc.dart';
+
+abstract class ${pascal}Event extends Equatable {
+  const ${pascal}Event();
+
+  @override
+  List<Object?> get props => [];
+}
+
+class Load${pascal}Event extends ${pascal}Event {
+  const Load${pascal}Event();
+}
+''';
+    }
+
     return '''
 part of '${snake}_bloc.dart';
 
@@ -75,11 +104,14 @@ class Load${pascal}Event extends ${pascal}Event {
     StringCase feature,
     StringCase blocName, {
     bool isCubit = false,
+    bool isList = false,
   }) {
     final featurePascal = feature.pascalCase;
     final pascal = blocName.pascalCase;
     final snake = blocName.snakeCase;
     final partOfFile = isCubit ? '${snake}_cubit.dart' : '${snake}_bloc.dart';
+    final dataType =
+        isList ? 'List<${featurePascal}Entity>' : '${featurePascal}Entity';
 
     return '''
 part of '$partOfFile';
@@ -100,7 +132,7 @@ class ${pascal}Loading extends ${pascal}State {
 }
 
 class ${pascal}Loaded extends ${pascal}State {
-  final ${featurePascal}Entity data;
+  final $dataType data;
 
   const ${pascal}Loaded(this.data);
 
@@ -122,17 +154,26 @@ class ${pascal}Error extends ${pascal}State {
   static String cubit(
     String projectName,
     StringCase feature,
-    StringCase cubitName,
-  ) {
+    StringCase cubitName, {
+    bool isList = false,
+  }) {
     final featurePascal = feature.pascalCase;
     final featureSnake = feature.snakeCase;
     final cubitPascal = cubitName.pascalCase;
     final cubitSnake = cubitName.snakeCase;
 
+    final useCaseImport = isList
+        ? "import 'package:$projectName/core/usecases/usecase.dart';\n"
+        : '';
+    final methodParam = isList ? '' : 'String id';
+    final useCaseCall = isList
+        ? 'const NoParams()'
+        : 'Get${featurePascal}Params(id: id)';
+
     return '''
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:$projectName/features/$featureSnake/domain/entities/${featureSnake}_entity.dart';
+${useCaseImport}import 'package:$projectName/features/$featureSnake/domain/entities/${featureSnake}_entity.dart';
 import 'package:$projectName/features/$featureSnake/domain/usecases/get_${featureSnake}_usecase.dart';
 
 part '${cubitSnake}_state.dart';
@@ -144,10 +185,10 @@ class ${cubitPascal}Cubit extends Cubit<${cubitPascal}State> {
     required this.get${featurePascal}UseCase,
   }) : super(const ${cubitPascal}Initial());
 
-  Future<void> load$cubitPascal(String id) async {
+  Future<void> load$cubitPascal($methodParam) async {
     emit(const ${cubitPascal}Loading());
     final result = await get${featurePascal}UseCase(
-      Get${featurePascal}Params(id: id),
+      $useCaseCall,
     );
     result.fold(
       (failure) => emit(${cubitPascal}Error(failure.message)),
@@ -162,6 +203,7 @@ class ${cubitPascal}Cubit extends Cubit<${cubitPascal}State> {
     String projectName,
     StringCase feature, {
     bool useCubit = false,
+    bool isList = false,
   }) {
     final pascal = feature.pascalCase;
     final snake = feature.snakeCase;
@@ -169,6 +211,21 @@ class ${cubitPascal}Cubit extends Cubit<${cubitPascal}State> {
     final stateClass = useCubit ? '${pascal}Cubit' : '${pascal}Bloc';
     final stateFolder = useCubit ? 'cubit' : 'bloc';
     final stateFile = useCubit ? '${snake}_cubit.dart' : '${snake}_bloc.dart';
+
+    final loadedWidget = isList
+        ? '''if (state.data.isEmpty) {
+                return const Center(child: Text('No $title items found'));
+              }
+              return ListView.builder(
+                itemCount: state.data.length,
+                itemBuilder: (context, index) {
+                  final item = state.data[index];
+                  return ListTile(
+                    title: Text(item.toString()),
+                  );
+                },
+              );'''
+        : "return Center(child: Text('Loaded: \${state.data}'));";
 
     return '''
 import 'package:flutter/material.dart';
@@ -192,7 +249,7 @@ class ${pascal}Page extends StatelessWidget {
             if (state is ${pascal}Loading) {
               return const Center(child: CircularProgressIndicator());
             } else if (state is ${pascal}Loaded) {
-              return Center(child: Text('Loaded ID: \${state.data.id}'));
+              $loadedWidget
             } else if (state is ${pascal}Error) {
               return Center(child: Text('Error: \${state.message}'));
             }

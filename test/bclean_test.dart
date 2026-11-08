@@ -161,7 +161,7 @@ dependencies:
   });
 
   test(
-      'bclean generate model on user_auth with user_profile.json generates Entity & Model',
+      'bclean generate model on user_auth with user_profile.json generates Entity & Model with fromJsonList',
       () async {
     final jsonFile = File(p.join(tempDir.path, 'user_profile.json'));
     await jsonFile.writeAsString('''
@@ -212,15 +212,81 @@ dependencies:
       contains('class UserProfileModel extends UserProfileEntity'),
     );
     expect(modelContent, contains('factory UserProfileModel.fromJson'));
+    expect(
+      modelContent,
+      contains('static List<UserProfileModel> fromJsonList(List<dynamic> jsonList)'),
+    );
     expect(modelContent, contains('Map<String, dynamic> toJson()'));
     expect(modelContent, contains('UserProfileModel copyWith('));
     expect(modelContent, contains('class AddressModel extends AddressEntity'));
   });
 
   test(
+      'bclean generate model with JSON Array [{}] auto-upgrades feature to List<Entity> mode',
+      () async {
+    await runner.run([
+      'c',
+      'feature:posts',
+      '--no-local',
+      '-p',
+      tempDir.path,
+    ]);
+
+    final jsonFile = File(p.join(tempDir.path, 'posts.json'));
+    await jsonFile.writeAsString('''
+[
+  {
+    "userId": 1,
+    "id": 1,
+    "title": "Hello BLoC",
+    "body": "Clean Architecture List"
+  }
+]
+''');
+
+    final code = await runner.run([
+      'g',
+      'model',
+      'on',
+      'posts',
+      'with',
+      'posts.json',
+      '-p',
+      tempDir.path,
+    ]);
+    expect(code, 0);
+
+    final featureDir = p.join(tempDir.path, 'lib', 'features', 'posts');
+    final repoContent = File(
+      p.join(featureDir, 'domain', 'repositories', 'posts_repository.dart'),
+    ).readAsStringSync();
+    expect(
+      repoContent,
+      contains('Future<Either<Failure, List<PostsEntity>>> getPosts();'),
+    );
+
+    final useCaseContent = File(
+      p.join(featureDir, 'domain', 'usecases', 'get_posts_usecase.dart'),
+    ).readAsStringSync();
+    expect(
+      useCaseContent,
+      contains('implements UseCase<List<PostsEntity>, NoParams>'),
+    );
+
+    final stateContent = File(
+      p.join(featureDir, 'presentation', 'bloc', 'posts_state.dart'),
+    ).readAsStringSync();
+    expect(stateContent, contains('final List<PostsEntity> data;'));
+
+    final pageContent = File(
+      p.join(featureDir, 'presentation', 'pages', 'posts_page.dart'),
+    ).readAsStringSync();
+    expect(pageContent, contains('ListView.builder'));
+  });
+
+  test(
       'bclean init auto-discovers existing features in lib/features/ and registers them',
       () async {
-    // Create feature first (which also auto-runs init if missing)
     await runner.run([
       'create',
       'feature:auth',
@@ -228,7 +294,6 @@ dependencies:
       tempDir.path,
     ]);
 
-    // Now re-run `bclean init --force` on top of existing features
     final code = await runner.run(['init', '--force', '-p', tempDir.path]);
     expect(code, 0);
 

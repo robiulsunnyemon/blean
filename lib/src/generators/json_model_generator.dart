@@ -4,6 +4,7 @@ import 'package:path/path.dart' as p;
 import '../utils/file_helper.dart';
 import '../utils/logger.dart';
 import '../utils/string_case.dart';
+import 'feature_generator.dart';
 
 class _FieldDef {
   final String jsonKey;
@@ -36,7 +37,7 @@ class _ClassDef {
 }
 
 /// Parses a JSON file and generates Clean Architecture Domain Entity
-/// and Data Model (`fromJson`, `toJson`, `copyWith`, `Equatable`).
+/// and Data Model (`fromJson`, `fromJsonList`, `toJson`, `copyWith`, `Equatable`).
 class JsonModelGenerator {
   static Future<void> generateFromJsonFile({
     required String projectDir,
@@ -44,6 +45,7 @@ class JsonModelGenerator {
     required String jsonFilePath,
     String? customModelName,
     bool skipEntity = false,
+    bool? forceList,
     bool overwrite = true,
   }) async {
     final file = File(
@@ -60,18 +62,21 @@ class JsonModelGenerator {
     final dynamic decoded = jsonDecode(rawContent);
 
     Map<String, dynamic> rootMap;
+    bool isJsonArray = false;
     if (decoded is Map<String, dynamic>) {
       rootMap = decoded;
     } else if (decoded is List &&
         decoded.isNotEmpty &&
         decoded.first is Map<String, dynamic>) {
       rootMap = decoded.first as Map<String, dynamic>;
+      isJsonArray = true;
     } else {
       throw const FormatException(
         'JSON root must be an Object {} or a non-empty List of Objects [{}].',
       );
     }
 
+    final isListMode = forceList ?? isJsonArray;
     final inferredName =
         customModelName ?? p.basenameWithoutExtension(file.path);
     final rootName = StringCase(inferredName);
@@ -79,7 +84,7 @@ class JsonModelGenerator {
     final projectName = FileHelper.getProjectName(projectDir);
 
     CliLogger.info(
-      'Generating Model & Entity "${rootName.pascalCase}" on feature "${feature.pascalCase}" from $jsonFilePath...',
+      'Generating Model & Entity "${rootName.pascalCase}" (${isListMode ? 'JSON List' : 'Single Object'}) on feature "${feature.pascalCase}" from $jsonFilePath...',
     );
 
     final classes = <_ClassDef>[];
@@ -123,8 +128,21 @@ class JsonModelGenerator {
       baseDir: projectDir,
     );
 
+    // If the model name matches the feature name (e.g. `posts.json` on feature `posts`)
+    // and the JSON root is a List (or `--list` was passed), automatically sync
+    // the feature's DataSource, Repository, UseCase, BLoC/Cubit, and Page!
+    if (!skipEntity &&
+        rootName.snakeCase == feature.snakeCase &&
+        (isListMode || forceList != null)) {
+      await FeatureGenerator.syncFeatureListMode(
+        projectDir: projectDir,
+        feature: feature,
+        isList: isListMode,
+      );
+    }
+
     CliLogger.success(
-      'Generated ${rootName.pascalCase}Model${skipEntity ? '' : ' & ${rootName.pascalCase}Entity'} successfully!',
+      'Generated ${rootName.pascalCase}Model${skipEntity ? '' : ' & ${rootName.pascalCase}Entity'} (${isListMode ? 'List Mode' : 'Single Item Mode'}) successfully!',
     );
   }
 
@@ -175,7 +193,8 @@ class JsonModelGenerator {
             MapEntry(nestedName, value.first as Map<String, dynamic>),
           );
         } else {
-          final itemType = value.isNotEmpty ? _primitiveType(value.first) : 'dynamic';
+          final itemType =
+              value.isNotEmpty ? _primitiveType(value.first) : 'dynamic';
           fields.add(
             _FieldDef(
               jsonKey: key,
@@ -292,7 +311,7 @@ class JsonModelGenerator {
       buffer.writeln('  });');
       buffer.writeln();
 
-      // fromJson
+      // fromJson (Single Object)
       buffer.writeln(
         '  factory ${pascal}Model.fromJson(Map<String, dynamic> json) {',
       );
@@ -303,6 +322,18 @@ class JsonModelGenerator {
         );
       }
       buffer.writeln('    );');
+      buffer.writeln('  }');
+      buffer.writeln();
+
+      // fromJsonList (JSON List / Array)
+      buffer.writeln(
+        '  static List<${pascal}Model> fromJsonList(List<dynamic> jsonList) {',
+      );
+      buffer.writeln('    return jsonList');
+      buffer.writeln(
+        '        .map((e) => ${pascal}Model.fromJson(e as Map<String, dynamic>))',
+      );
+      buffer.writeln('        .toList();');
       buffer.writeln('  }');
       buffer.writeln();
 

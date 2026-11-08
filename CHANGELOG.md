@@ -1,3 +1,11 @@
+## 0.1.3
+
+- **Single Item & JSON List Support (`--list` / `-l`)**:
+  - Added `--list` (`-l`) flag to `bclean create feature:<name>`, `bclean create usecase:<name>`, `bclean create bloc:<name>`, `bclean create cubit:<name>`, and `bclean create page:<name>` to generate `List<Entity>` return types, `NoParams` UseCases, and `ListView.builder` UI pages.
+  - Added `static List<Model> fromJsonList(List<dynamic> jsonList)` to all generated Models alongside `factory Model.fromJson(Map<String, dynamic> json)`.
+  - **Auto JSON List Detection in `bclean g model`**: When generating a model from a JSON file whose root is a JSON Array `[{...}]` and whose name matches the target feature (e.g., `bclean g model on posts with assets/posts.json`), `bclean` automatically upgrades the feature's DataSources, Repository, UseCase, BLoC/Cubit, and Page to `List<Entity>` mode.
+  - Updated DataSource templates to use `Model.fromJson(const {})` and `Model.fromJsonList(const [])` placeholders so custom fields generated from JSON never break DataSource compilation.
+
 ## 0.1.2
 
 - **Default Starter Route**: `AppRouter.routes` now includes a default `'/'` starter route out-of-the-box so `MaterialApp` never throws an empty-routes assertion error if run before creating a feature.

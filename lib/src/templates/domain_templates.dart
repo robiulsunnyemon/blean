@@ -20,16 +20,23 @@ class ${pascal}Entity extends Equatable {
 ''';
   }
 
-  static String repositoryInterface(String projectName, StringCase feature) {
+  static String repositoryInterface(
+    String projectName,
+    StringCase feature, {
+    bool isList = false,
+  }) {
     final pascal = feature.pascalCase;
     final snake = feature.snakeCase;
+    final returnType = isList ? 'List<${pascal}Entity>' : '${pascal}Entity';
+    final params = isList ? '' : 'String id';
+
     return '''
 import 'package:dartz/dartz.dart';
 import 'package:$projectName/core/error/failures.dart';
 import 'package:$projectName/features/$snake/domain/entities/${snake}_entity.dart';
 
 abstract class ${pascal}Repository {
-  Future<Either<Failure, ${pascal}Entity>> get$pascal(String id);
+  Future<Either<Failure, $returnType>> get$pascal($params);
 }
 ''';
   }
@@ -37,12 +44,34 @@ abstract class ${pascal}Repository {
   static String useCase(
     String projectName,
     StringCase feature,
-    StringCase useCaseName,
-  ) {
+    StringCase useCaseName, {
+    bool isList = false,
+  }) {
     final featurePascal = feature.pascalCase;
     final featureSnake = feature.snakeCase;
     final useCasePascal = useCaseName.pascalCase;
     final useCaseCamel = useCaseName.camelCase;
+
+    if (isList) {
+      return '''
+import 'package:dartz/dartz.dart';
+import 'package:$projectName/core/error/failures.dart';
+import 'package:$projectName/core/usecases/usecase.dart';
+import 'package:$projectName/features/$featureSnake/domain/entities/${featureSnake}_entity.dart';
+import 'package:$projectName/features/$featureSnake/domain/repositories/${featureSnake}_repository.dart';
+
+class ${useCasePascal}UseCase implements UseCase<List<${featurePascal}Entity>, NoParams> {
+  final ${featurePascal}Repository repository;
+
+  const ${useCasePascal}UseCase(this.repository);
+
+  @override
+  Future<Either<Failure, List<${featurePascal}Entity>>> call(NoParams params) async {
+    return await repository.$useCaseCamel();
+  }
+}
+''';
+    }
 
     return '''
 import 'package:dartz/dartz.dart';

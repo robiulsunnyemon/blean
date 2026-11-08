@@ -13,7 +13,9 @@ class GenerateCommand extends Command<int> {
   @override
   final String description =
       'Generate Clean Architecture Entity & Model from a JSON file (get_cli style).\n'
+      'Auto-detects whether the JSON root is a Single Object {} or a JSON List [{}].\n'
       'Examples:\n'
+      '  bclean generate model on posts with assets/posts.json\n'
       '  bclean generate model on auth with assets/models/user.json\n'
       '  bclean generate model on product with assets/item.json --name product_detail\n'
       '  bclean generate model on auth with user.json --skip-entity';
@@ -32,6 +34,12 @@ class GenerateCommand extends Command<int> {
         'name',
         abbr: 'n',
         help: 'Custom model/entity base name (defaults to JSON filename).',
+      )
+      ..addFlag(
+        'list',
+        abbr: 'l',
+        help:
+            'Force List<Entity> mode (auto-detected if JSON root is an Array [...]).',
       )
       ..addFlag(
         'skip-entity',
@@ -66,6 +74,9 @@ class GenerateCommand extends Command<int> {
     final customName = argResults?['name'] as String?;
     final skipEntity = argResults?['skip-entity'] as bool? ?? false;
     final overwrite = argResults?['force'] as bool? ?? true;
+    final forceList = (argResults?.wasParsed('list') ?? false)
+        ? (argResults?['list'] as bool?)
+        : null;
 
     String type = rest.first.toLowerCase();
     String? inlineName;
@@ -117,6 +128,7 @@ class GenerateCommand extends Command<int> {
       jsonFilePath: jsonFilePath,
       customModelName: customName ?? inlineName,
       skipEntity: skipEntity,
+      forceList: forceList,
       overwrite: overwrite,
     );
 

@@ -12,11 +12,15 @@ A fast, **`get_cli`-inspired CLI tool** for Flutter & Dart to scaffold **Clean A
 
 - ⚡ **One-Command Project Setup (`bclean init`)**: Scaffolds `core/` (`failures`, `exceptions`, `usecase`, `network_info`, `app_router`), `injection_container.dart`, automatically configures `main.dart` with `await di.initDependencies()`, and adds required packages to `pubspec.yaml`.
 - 🏗️ **Full Feature Scaffolding (`bclean create feature:<name>`)**: Generates all 3 Clean Architecture layers (**Domain**, **Data**, **Presentation**) in seconds.
+- 📋 **Single Item & JSON List Support (`--list` / Auto-Detect)**:
+  - Supports both **Single Object (`Entity`)** and **List of Objects (`List<Entity>`)** across DataSources, Repositories, UseCases (`NoParams`), BLoC/Cubit States, and `ListView.builder` Pages.
+  - Every generated Model includes both `fromJson(Map<String, dynamic>)` and `fromJsonList(List<dynamic>)`.
+  - `bclean g model` automatically detects whether your JSON file root is a Single Object `{...}` or a JSON Array `[{...}]` and updates the feature layers accordingly!
 - 🔌 **Zero-Boilerplate Auto-Wiring**:
   - Automatically registers BLoCs/Cubits, UseCases, Repositories, and DataSources in `lib/injection_container.dart`.
   - Automatically registers page routes in `lib/core/router/app_router.dart`.
   - Creating a new UseCase (`bclean create usecase:<name> on <feature>`) automatically injects the method contract into the Domain Repository, the `@override` implementation into the Data Repository, and registers it in GetIt!
-- 🧬 **JSON to Clean Architecture (`bclean generate model`)**: Converts any JSON file (including nested objects and arrays) into both a **Domain Entity** (`Equatable`) and a **Data Model** (`fromJson`, `toJson`, `copyWith`).
+- 🧬 **JSON to Clean Architecture (`bclean generate model`)**: Converts any JSON file (including nested objects and arrays) into both a **Domain Entity** (`Equatable`) and a **Data Model** (`fromJson`, `fromJsonList`, `toJson`, `copyWith`).
 - 🎛️ **Flexible State Management**: Supports both **BLoC** (default) and **Cubit** (`--cubit`).
 
 ---
@@ -54,24 +58,20 @@ bclean init
 flutter pub get
 ```
 
-What `bclean init` does automatically:
-1. Adds `flutter_bloc`, `equatable`, `dartz`, and `get_it` to `pubspec.yaml`.
-2. Creates `lib/core/error/failures.dart` & `exceptions.dart`.
-3. Creates `lib/core/usecases/usecase.dart` (`UseCase<Type, Params>` & `NoParams`).
-4. Creates `lib/core/network/network_info.dart`.
-5. Creates `lib/core/router/app_router.dart`.
-6. Creates `lib/injection_container.dart`.
-7. Updates `lib/main.dart` with `await di.initDependencies()` and `AppRouter.routes` pre-configured!
-
 ---
 
-### Step 2: Create your first Feature (`auth`)
+### Step 2: Create a Feature (Single Item vs List)
 
+#### Option A: Single Item Feature (e.g. `auth`, `profile`)
 ```bash
 bclean create feature:auth
 ```
 
-This single command generates 11 files across **Domain**, **Data**, and **Presentation** layers, registers `AuthBloc`, `GetAuthUseCase`, `AuthRepository`, and DataSources inside `lib/injection_container.dart`, and sets `/auth` in `lib/core/router/app_router.dart`!
+#### Option B: List Feature (e.g. `posts`, `products`, `orders`)
+Use `--list` (or `-l`) when the feature fetches a `List` of items:
+```bash
+bclean create feature:posts --list --no-local
+```
 
 Now simply run your app:
 
@@ -86,65 +86,55 @@ flutter run
 | Command | Alias | Description |
 | :--- | :--- | :--- |
 | `bclean init` | — | Initializes Clean Architecture `core/`, `injection_container.dart`, `app_router.dart`, `main.dart`, and `pubspec.yaml`. |
-| `bclean create feature:<name>` | `bclean c feature:<name>` | Creates a complete feature (`Domain` + `Data` + `Presentation`) and wires DI & Routing. |
-| `bclean create usecase:<name> on <feature>` | `bclean c usecase:<name> on <feature>` | Creates a UseCase and auto-updates the feature's `Repository`, `RepositoryImpl`, and `injection_container.dart`. |
+| `bclean create feature:<name>` | `bclean c feature:<name>` | Creates a complete feature (`Domain` + `Data` + `Presentation`) and wires DI & Routing. Add `--list` (`-l`) for `List<Entity>`, `--cubit` (`-c`) for Cubit, or `--no-local` to skip LocalDataSource. |
+| `bclean create usecase:<name> on <feature>` | `bclean c usecase:<name> on <feature>` | Creates a UseCase and auto-updates the feature's `Repository`, `RepositoryImpl`, and `injection_container.dart`. Add `--list` (`-l`) if it returns `List<Entity>`. |
 | `bclean create bloc:<name> on <feature>` | `bclean c bloc:<name> on <feature>` | Creates a new BLoC (`_bloc.dart`, `_event.dart`, `_state.dart`) inside the target feature. |
 | `bclean create cubit:<name> on <feature>` | `bclean c cubit:<name> on <feature>` | Creates a new Cubit (`_cubit.dart`, `_state.dart`) inside the target feature. |
 | `bclean create page:<name> on <feature>` | `bclean c page:<name> on <feature>` | Creates a new Page inside the feature and registers its route in `AppRouter`. |
-| `bclean generate model on <feature> with <json>` | `bclean g model on <feature> with <json>` | Generates Domain `Entity` and Data `Model` from a JSON file. |
+| `bclean generate model on <feature> with <json>` | `bclean g model on <feature> with <json>` | Generates Domain `Entity` and Data `Model` (`fromJson` + `fromJsonList`) from a JSON file and auto-syncs List/Single mode. |
 
 ---
 
-## 📖 Detailed Usage Examples
+## 📖 Handling Single JSON Object `{}` vs JSON List `[{}]`
 
-### 1. Creating Features (BLoC vs Cubit)
+In real-world APIs, some endpoints return a **Single JSON Object `{...}`** (e.g., `/user/1`) while others return a **JSON List `[{...}, {...}]`** (e.g., `/posts`). `bclean` handles both effortlessly:
 
-```bash
-# Default (BLoC + Remote & Local DataSources)
-bclean create feature:user_auth
-
-# Use Cubit instead of BLoC
-bclean create feature:profile --cubit
-
-# Skip LocalDataSource (Remote API only)
-bclean create feature:orders --no-local
+### Scenario 1: JSON List Response (`assets/posts.json`)
+Suppose `assets/posts.json` contains a JSON Array:
+```json
+[
+  {
+    "userId": 1,
+    "id": 1,
+    "title": "Clean Architecture with BLoC",
+    "body": "Generated automatically using bclean CLI."
+  }
+]
 ```
 
-### 2. Adding a UseCase to an Existing Feature
-
+Run:
 ```bash
-bclean create usecase:login on auth
+# 1. Create the posts feature
+bclean c feature:posts --no-local
+
+# 2. Generate Entity & Model from assets/posts.json
+bclean g model on posts with assets/posts.json
 ```
 
-What happens behind the scenes:
-- **Created:** `lib/features/auth/domain/usecases/login_usecase.dart` (`LoginUseCase` & `LoginParams`)
-- **Updated:** `lib/features/auth/domain/repositories/auth_repository.dart` (adds `Future<Either<Failure, AuthEntity>> login(String id);`)
-- **Updated:** `lib/features/auth/data/repositories/auth_repository_impl.dart` (adds `@override login(...)` implementation)
-- **Updated:** `lib/injection_container.dart` (registers `sl.registerLazySingleton(() => LoginUseCase(sl()));`)
+Because `assets/posts.json` starts with `[ ... ]`, `bclean` **automatically**:
+1. Generates `PostsEntity` and `PostsModel` (with both `PostsModel.fromJson(...)` and `PostsModel.fromJsonList(...)`).
+2. Upgrades `PostsRemoteDataSource`, `PostsRepository`, `PostsRepositoryImpl`, `GetPostsUseCase`, `PostsBloc` (`PostsLoaded(List<PostsEntity> data)`), and `PostsPage` (`ListView.builder`) to use **`List<PostsEntity>`**!
 
-### 3. Adding Extra BLoCs, Cubits, or Pages to a Feature
-
-```bash
-# Add a new BLoC inside 'auth'
-bclean create bloc:session on auth
-
-# Add a new Cubit inside 'profile'
-bclean create cubit:theme on profile
-
-# Add a new Page inside 'auth' (auto-registered in AppRouter)
-bclean create page:register on auth
-```
-
-Navigate to any generated page using `AppRouter`:
-
+In your `PostsRemoteDataSourceImpl`, you can parse the API response list in one line:
 ```dart
-Navigator.pushNamed(context, AppRouter.register);
+final response = await dio.get('https://jsonplaceholder.typicode.com/posts');
+return PostsModel.fromJsonList(response.data as List<dynamic>);
 ```
 
-### 4. Generating Entity & Model from JSON
+---
 
-Suppose you have `assets/user_profile.json`:
-
+### Scenario 2: Single JSON Object Response (`assets/user_profile.json`)
+Suppose `assets/user_profile.json` contains a single JSON Object:
 ```json
 {
   "id": "u_101",
@@ -160,18 +150,28 @@ Suppose you have `assets/user_profile.json`:
 ```
 
 Run:
-
 ```bash
-bclean generate model on auth with assets/user_profile.json
+bclean g model on auth with assets/user_profile.json
 ```
 
-**Options:**
-- `--name <custom_name>`: Specify a custom class name (e.g., `--name auth_user`).
-- `--skip-entity`: Generate only the Data Model without a Domain Entity.
+In your `AuthRemoteDataSourceImpl`, parse the single object in one line:
+```dart
+final response = await dio.get('https://api.example.com/profile');
+return UserProfileModel.fromJson(response.data as Map<String, dynamic>);
+```
 
-This generates:
-- `lib/features/auth/domain/entities/user_profile_entity.dart` (`UserProfileEntity` & nested `AddressEntity` extending `Equatable`)
-- `lib/features/auth/data/models/user_profile_model.dart` (`UserProfileModel` & `AddressModel` with `fromJson`, `toJson`, and `copyWith`)
+---
+
+### Scenario 3: Both List & Single Item inside the Same Feature
+What if a `posts` feature needs **both** a list of all posts AND a single post by ID?
+
+```bash
+# 1. Create the feature in List mode (generates getPosts() -> List<PostsEntity>)
+bclean c feature:posts --list --no-local
+
+# 2. Add a second UseCase for fetching a single post by ID (generates getPostById(String id) -> PostsEntity)
+bclean c usecase:get_post_by_id on posts
+```
 
 ---
 
@@ -190,29 +190,28 @@ lib/
 │   └── usecases/
 │       └── usecase.dart
 ├── features/
-│   └── auth/
+│   └── posts/
 │       ├── data/
 │       │   ├── datasources/
-│       │   │   ├── auth_local_data_source.dart
-│       │   │   └── auth_remote_data_source.dart
+│       │   │   └── posts_remote_data_source.dart
 │       │   ├── models/
-│       │   │   └── auth_model.dart
+│       │   │   └── posts_model.dart
 │       │   └── repositories/
-│       │       └── auth_repository_impl.dart
+│       │       └── posts_repository_impl.dart
 │       ├── domain/
 │       │   ├── entities/
-│       │   │   └── auth_entity.dart
+│       │   │   └── posts_entity.dart
 │       │   ├── repositories/
-│       │   │   └── auth_repository.dart
+│       │   │   └── posts_repository.dart
 │       │   └── usecases/
-│       │       └── get_auth_usecase.dart
+│       │       └── get_posts_usecase.dart
 │       └── presentation/
 │           ├── bloc/
-│           │   ├── auth_bloc.dart
-│           │   ├── auth_event.dart
-│           │   └── auth_state.dart
+│           │   ├── posts_bloc.dart
+│           │   ├── posts_event.dart
+│           │   └── posts_state.dart
 │           └── pages/
-│               └── auth_page.dart
+│               └── posts_page.dart
 ├── injection_container.dart
 └── main.dart
 ```

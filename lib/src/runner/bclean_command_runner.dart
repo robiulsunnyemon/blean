@@ -6,7 +6,7 @@ import '../commands/generate_command.dart';
 import '../commands/init_command.dart';
 import '../utils/logger.dart';
 
-const String packageVersion = '0.1.2';
+const String packageVersion = '0.1.3';
 
 class BcleanCommandRunner extends CommandRunner<int> {
   BcleanCommandRunner()
