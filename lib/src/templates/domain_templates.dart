@@ -1,0 +1,76 @@
+import '../utils/string_case.dart';
+
+/// Templates for the Domain layer (Entities, Repository Interfaces, UseCases).
+class DomainTemplates {
+  static String entity(StringCase feature) {
+    final pascal = feature.pascalCase;
+    return '''
+import 'package:equatable/equatable.dart';
+
+class ${pascal}Entity extends Equatable {
+  final String id;
+
+  const ${pascal}Entity({
+    required this.id,
+  });
+
+  @override
+  List<Object?> get props => [id];
+}
+''';
+  }
+
+  static String repositoryInterface(String projectName, StringCase feature) {
+    final pascal = feature.pascalCase;
+    final snake = feature.snakeCase;
+    return '''
+import 'package:dartz/dartz.dart';
+import 'package:$projectName/core/error/failures.dart';
+import 'package:$projectName/features/$snake/domain/entities/${snake}_entity.dart';
+
+abstract class ${pascal}Repository {
+  Future<Either<Failure, ${pascal}Entity>> get$pascal(String id);
+}
+''';
+  }
+
+  static String useCase(
+    String projectName,
+    StringCase feature,
+    StringCase useCaseName,
+  ) {
+    final featurePascal = feature.pascalCase;
+    final featureSnake = feature.snakeCase;
+    final useCasePascal = useCaseName.pascalCase;
+    final useCaseCamel = useCaseName.camelCase;
+
+    return '''
+import 'package:dartz/dartz.dart';
+import 'package:equatable/equatable.dart';
+import 'package:$projectName/core/error/failures.dart';
+import 'package:$projectName/core/usecases/usecase.dart';
+import 'package:$projectName/features/$featureSnake/domain/entities/${featureSnake}_entity.dart';
+import 'package:$projectName/features/$featureSnake/domain/repositories/${featureSnake}_repository.dart';
+
+class ${useCasePascal}UseCase implements UseCase<${featurePascal}Entity, ${useCasePascal}Params> {
+  final ${featurePascal}Repository repository;
+
+  const ${useCasePascal}UseCase(this.repository);
+
+  @override
+  Future<Either<Failure, ${featurePascal}Entity>> call(${useCasePascal}Params params) async {
+    return await repository.$useCaseCamel(params.id);
+  }
+}
+
+class ${useCasePascal}Params extends Equatable {
+  final String id;
+
+  const ${useCasePascal}Params({required this.id});
+
+  @override
+  List<Object?> get props => [id];
+}
+''';
+  }
+}

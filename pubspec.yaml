@@ -1,0 +1,28 @@
+name: bclean
+description: A powerful CLI tool for Flutter to generate Clean Architecture with BLoC or Cubit state management and dartz error handling, inspired by get_cli.
+version: 0.1.0
+homepage: https://github.com/robiulsunnyemon/blean
+repository: https://github.com/robiulsunnyemon/blean
+issue_tracker: https://github.com/robiulsunnyemon/blean/issues
+
+topics:
+  - cli
+  - bloc
+  - clean-architecture
+  - codegen
+  - flutter
+
+environment:
+  sdk: ^3.0.0
+
+dependencies:
+  args: ^2.4.2
+  path: ^1.9.0
+  yaml: ^3.1.2
+
+dev_dependencies:
+  lints: ^3.0.0
+  test: ^1.24.0
+
+executables:
+  bclean: bclean

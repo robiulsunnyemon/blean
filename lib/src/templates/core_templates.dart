@@ -1,0 +1,90 @@
+/// Templates for `bclean init` (Core layer & Dependency Injection).
+class CoreTemplates {
+  static String failures() => '''
+import 'package:equatable/equatable.dart';
+
+abstract class Failure extends Equatable {
+  final String message;
+
+  const Failure([this.message = 'An unexpected error occurred']);
+
+  @override
+  List<Object?> get props => [message];
+}
+
+class ServerFailure extends Failure {
+  const ServerFailure([super.message = 'Server error occurred']);
+}
+
+class CacheFailure extends Failure {
+  const CacheFailure([super.message = 'Cache error occurred']);
+}
+
+class NetworkFailure extends Failure {
+  const NetworkFailure([super.message = 'No internet connection']);
+}
+''';
+
+  static String exceptions() => '''
+class ServerException implements Exception {
+  final String message;
+  const ServerException([this.message = 'Server exception occurred']);
+}
+
+class CacheException implements Exception {
+  final String message;
+  const CacheException([this.message = 'Cache exception occurred']);
+}
+
+class NetworkException implements Exception {
+  final String message;
+  const NetworkException([this.message = 'No internet connection']);
+}
+''';
+
+  static String useCase(String projectName) => '''
+import 'package:dartz/dartz.dart';
+import 'package:equatable/equatable.dart';
+import 'package:$projectName/core/error/failures.dart';
+
+abstract class UseCase<Type, Params> {
+  Future<Either<Failure, Type>> call(Params params);
+}
+
+class NoParams extends Equatable {
+  const NoParams();
+
+  @override
+  List<Object?> get props => [];
+}
+''';
+
+  static String networkInfo() => '''
+abstract class NetworkInfo {
+  Future<bool> get isConnected;
+}
+
+class NetworkInfoImpl implements NetworkInfo {
+  @override
+  Future<bool> get isConnected async {
+    // TODO: Implement actual connectivity check (e.g., internet_connection_checker)
+    return true;
+  }
+}
+''';
+
+  static String injectionContainer(String projectName) => '''
+import 'package:get_it/get_it.dart';
+import 'package:$projectName/core/network/network_info.dart';
+// [BCLEAN_IMPORTS]
+
+final sl = GetIt.instance;
+
+Future<void> initDependencies() async {
+  // Core
+  sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl());
+
+  // [BCLEAN_FEATURES]
+}
+''';
+}
