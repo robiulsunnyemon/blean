@@ -36,11 +36,9 @@ class PubspecModifier {
       if (doc is YamlMap && doc['bclean'] is YamlMap) {
         final cfg = doc['bclean'] as YamlMap;
         final stateMgmt = cfg['state_management']?.toString().toLowerCase();
-        final useCubit =
-            (cfg['use_cubit'] == true) || (stateMgmt == 'cubit');
-        final includeLocal = cfg['include_local'] is bool
-            ? cfg['include_local'] as bool
-            : true;
+        final useCubit = (cfg['use_cubit'] == true) || (stateMgmt == 'cubit');
+        final includeLocal =
+            cfg['include_local'] is bool ? cfg['include_local'] as bool : true;
         return BcleanConfig(
           useCubit: useCubit,
           includeLocal: includeLocal,
@@ -91,9 +89,8 @@ class PubspecModifier {
       return [];
     }
 
-    final linesToAdd = missing.entries
-        .map((e) => '  ${e.key}: ${e.value}')
-        .join('\n');
+    final linesToAdd =
+        missing.entries.map((e) => '  ${e.key}: ${e.value}').join('\n');
 
     final depHeaderRegex = RegExp(r'^dependencies:\s*$', multiLine: true);
     if (depHeaderRegex.hasMatch(content)) {

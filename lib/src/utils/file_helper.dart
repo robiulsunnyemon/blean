@@ -13,9 +13,8 @@ class FileHelper {
     String? baseDir,
   }) async {
     final file = File(filePath);
-    final displayPath = baseDir != null
-        ? p.relative(filePath, from: baseDir)
-        : filePath;
+    final displayPath =
+        baseDir != null ? p.relative(filePath, from: baseDir) : filePath;
 
     if (await file.exists() && !overwrite) {
       CliLogger.warn('Skipped (already exists): $displayPath');

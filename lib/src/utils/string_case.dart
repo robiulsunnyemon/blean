@@ -27,23 +27,19 @@ class StringCase {
   String get snakeCase => _words.join('_');
 
   /// e.g. `UserProfile`
-  String get pascalCase => _words
-      .map((w) => w[0].toUpperCase() + w.substring(1))
-      .join();
+  String get pascalCase =>
+      _words.map((w) => w[0].toUpperCase() + w.substring(1)).join();
 
   /// e.g. `userProfile`
   String get camelCase {
     if (_words.isEmpty) return '';
     final first = _words.first;
-    final rest = _words
-        .skip(1)
-        .map((w) => w[0].toUpperCase() + w.substring(1))
-        .join();
+    final rest =
+        _words.skip(1).map((w) => w[0].toUpperCase() + w.substring(1)).join();
     return '$first$rest';
   }
 
   /// e.g. `User Profile`
-  String get titleCase => _words
-      .map((w) => w[0].toUpperCase() + w.substring(1))
-      .join(' ');
+  String get titleCase =>
+      _words.map((w) => w[0].toUpperCase() + w.substring(1)).join(' ');
 }

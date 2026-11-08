@@ -357,7 +357,8 @@ class FeatureGenerator {
 
     if (useCubit) {
       await FileHelper.writeFile(
-        p.join(featureDir, 'presentation', 'cubit', '${bloc.snakeCase}_cubit.dart'),
+        p.join(featureDir, 'presentation', 'cubit',
+            '${bloc.snakeCase}_cubit.dart'),
         PresentationTemplates.cubit(
           projectName,
           feature,
@@ -368,7 +369,8 @@ class FeatureGenerator {
         baseDir: projectDir,
       );
       await FileHelper.writeFile(
-        p.join(featureDir, 'presentation', 'cubit', '${bloc.snakeCase}_state.dart'),
+        p.join(featureDir, 'presentation', 'cubit',
+            '${bloc.snakeCase}_state.dart'),
         PresentationTemplates.blocState(
           feature,
           bloc,
@@ -390,7 +392,8 @@ class FeatureGenerator {
       );
     } else {
       await FileHelper.writeFile(
-        p.join(featureDir, 'presentation', 'bloc', '${bloc.snakeCase}_bloc.dart'),
+        p.join(
+            featureDir, 'presentation', 'bloc', '${bloc.snakeCase}_bloc.dart'),
         PresentationTemplates.bloc(
           projectName,
           feature,
@@ -401,7 +404,8 @@ class FeatureGenerator {
         baseDir: projectDir,
       );
       await FileHelper.writeFile(
-        p.join(featureDir, 'presentation', 'bloc', '${bloc.snakeCase}_event.dart'),
+        p.join(
+            featureDir, 'presentation', 'bloc', '${bloc.snakeCase}_event.dart'),
         PresentationTemplates.blocEvent(
           bloc,
           isList: isList,
@@ -410,7 +414,8 @@ class FeatureGenerator {
         baseDir: projectDir,
       );
       await FileHelper.writeFile(
-        p.join(featureDir, 'presentation', 'bloc', '${bloc.snakeCase}_state.dart'),
+        p.join(
+            featureDir, 'presentation', 'bloc', '${bloc.snakeCase}_state.dart'),
         PresentationTemplates.blocState(
           feature,
           bloc,
@@ -446,7 +451,8 @@ class FeatureGenerator {
     final featureDir = p.join(projectDir, 'lib', 'features', feature.snakeCase);
 
     await FileHelper.writeFile(
-      p.join(featureDir, 'presentation', 'pages', '${page.snakeCase}_page.dart'),
+      p.join(
+          featureDir, 'presentation', 'pages', '${page.snakeCase}_page.dart'),
       PresentationTemplates.page(
         projectName,
         feature,
