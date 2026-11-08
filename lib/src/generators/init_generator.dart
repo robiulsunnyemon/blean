@@ -1,12 +1,15 @@
+import 'dart:io';
 import 'package:path/path.dart' as p;
+import '../modifiers/di_modifier.dart';
 import '../modifiers/pubspec_modifier.dart';
 import '../modifiers/router_modifier.dart';
 import '../templates/core_templates.dart';
 import '../utils/file_helper.dart';
 import '../utils/logger.dart';
+import '../utils/string_case.dart';
 
 /// Generates the base Clean Architecture `core/` folder, `app_router.dart`,
-/// `injection_container.dart`, and updates `pubspec.yaml` dependencies.
+/// `injection_container.dart`, `main.dart`, and updates `pubspec.yaml` dependencies.
 class InitGenerator {
   static Future<void> generate({
     required String projectDir,
@@ -40,6 +43,53 @@ class InitGenerator {
         overwrite: overwrite,
         baseDir: projectDir,
       );
+    }
+
+    // Always write/update main.dart during `bclean init` so DI (`initDependencies()`)
+    // and `AppRouter` are automatically wired up just like `get_cli`.
+    await FileHelper.writeFile(
+      p.join(projectDir, 'lib', 'main.dart'),
+      CoreTemplates.mainDart(projectName),
+      overwrite: true,
+      baseDir: projectDir,
+    );
+
+    // Auto-discover any existing features in `lib/features/` (in case the user
+    // created features before running `bclean init`) and register them in DI & Router!
+    final featuresDir = Directory(p.join(projectDir, 'lib', 'features'));
+    if (await featuresDir.exists()) {
+      final entities = await featuresDir.list().toList();
+      for (final entity in entities) {
+        if (entity is Directory) {
+          final featureName = p.basename(entity.path);
+          final feature = StringCase(featureName);
+          final snake = feature.snakeCase;
+          final useCubit = File(
+            p.join(entity.path, 'presentation', 'cubit', '${snake}_cubit.dart'),
+          ).existsSync();
+          final includeLocal = File(
+            p.join(
+              entity.path,
+              'data',
+              'datasources',
+              '${snake}_local_data_source.dart',
+            ),
+          ).existsSync();
+
+          await DiModifier.registerFeature(
+            projectDir: projectDir,
+            projectName: projectName,
+            feature: feature,
+            useCubit: useCubit,
+            includeLocal: includeLocal,
+          );
+          await RouterModifier.registerRoute(
+            projectDir: projectDir,
+            projectName: projectName,
+            feature: feature,
+          );
+        }
+      }
     }
 
     if (addPackages) {

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:path/path.dart' as p;
 import '../modifiers/di_modifier.dart';
 import '../modifiers/repository_modifier.dart';
@@ -8,6 +9,7 @@ import '../templates/presentation_templates.dart';
 import '../utils/file_helper.dart';
 import '../utils/logger.dart';
 import '../utils/string_case.dart';
+import 'init_generator.dart';
 
 /// Generates a full Clean Architecture feature or individual sub-components
 /// (bloc, cubit, usecase, page).
@@ -19,6 +21,17 @@ class FeatureGenerator {
     bool includeLocal = true,
     bool overwrite = false,
   }) async {
+    // Auto-initialize core, DI, router & main.dart if the user forgot to run `bclean init` first!
+    final diFile = File(p.join(projectDir, 'lib', 'injection_container.dart'));
+    final routerFile =
+        File(p.join(projectDir, 'lib', 'core', 'router', 'app_router.dart'));
+    if (!await diFile.exists() || !await routerFile.exists()) {
+      CliLogger.info(
+        'Core files not found. Auto-running `bclean init` first...',
+      );
+      await InitGenerator.generate(projectDir: projectDir);
+    }
+
     final projectName = FileHelper.getProjectName(projectDir);
     final feature = StringCase(featureRawName);
     final snake = feature.snakeCase;

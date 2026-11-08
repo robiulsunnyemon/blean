@@ -21,6 +21,14 @@ class AppRouter {
   $_routeConstMarker
 
   static Map<String, WidgetBuilder> get routes => {
+        '/': (_) => const Scaffold(
+              body: Center(
+                child: Text(
+                  'bclean Initialized!\\nRun: bclean create feature:home',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
         $_routeMapMarker
       };
 }
@@ -32,7 +40,8 @@ class AppRouter {
     required StringCase feature,
     StringCase? pageName,
   }) async {
-    final routerPath = p.join(projectDir, 'lib', 'core', 'router', 'app_router.dart');
+    final routerPath =
+        p.join(projectDir, 'lib', 'core', 'router', 'app_router.dart');
     final routerFile = File(routerPath);
     if (!await routerFile.exists()) {
       return;
@@ -56,6 +65,14 @@ class AppRouter {
     if (content.contains(_importMarker) &&
         content.contains(_routeConstMarker) &&
         content.contains(_routeMapMarker)) {
+      // Automatically set the first registered page as the initial route if still '/'
+      if (content.contains("static const String initial = '/';")) {
+        content = content.replaceFirst(
+          "static const String initial = '/';",
+          "static const String initial = '$routePath';",
+        );
+      }
+
       content = content
           .replaceFirst(_importMarker, '$importLine\n$_importMarker')
           .replaceFirst(

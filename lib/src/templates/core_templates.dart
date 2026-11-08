@@ -1,4 +1,6 @@
-/// Templates for `bclean init` (Core layer & Dependency Injection).
+import '../utils/string_case.dart';
+
+/// Templates for `bclean init` (Core layer, Dependency Injection, and main.dart).
 class CoreTemplates {
   static String failures() => '''
 import 'package:equatable/equatable.dart';
@@ -87,4 +89,37 @@ Future<void> initDependencies() async {
   // [BCLEAN_FEATURES]
 }
 ''';
+
+  static String mainDart(String projectName) {
+    final appTitle = StringCase(projectName).titleCase;
+    return '''
+import 'package:flutter/material.dart';
+import 'package:$projectName/core/router/app_router.dart';
+import 'package:$projectName/injection_container.dart' as di;
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await di.initDependencies();
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: '$appTitle',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      initialRoute: AppRouter.initial,
+      routes: AppRouter.routes,
+    );
+  }
+}
+''';
+  }
 }

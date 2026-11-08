@@ -56,6 +56,16 @@ dependencies:
       isTrue,
     );
 
+    final mainContent =
+        File(p.join(tempDir.path, 'lib', 'main.dart')).readAsStringSync();
+    expect(mainContent, contains('await di.initDependencies();'));
+    expect(mainContent, contains('routes: AppRouter.routes,'));
+
+    final routerContent =
+        File(p.join(tempDir.path, 'lib', 'core', 'router', 'app_router.dart'))
+            .readAsStringSync();
+    expect(routerContent, contains("'/': (_) => const Scaffold("));
+
     final pubspecContent =
         File(p.join(tempDir.path, 'pubspec.yaml')).readAsStringSync();
     expect(pubspecContent, contains('flutter_bloc:'));
@@ -101,6 +111,7 @@ dependencies:
     final routerContent =
         File(p.join(tempDir.path, 'lib', 'core', 'router', 'app_router.dart'))
             .readAsStringSync();
+    expect(routerContent, contains("static const String initial = '/user-auth';"));
     expect(routerContent, contains("static const String userAuth = '/user-auth';"));
     expect(routerContent, contains('userAuth: (_) => const UserAuthPage(),'));
   });
@@ -204,5 +215,32 @@ dependencies:
     expect(modelContent, contains('Map<String, dynamic> toJson()'));
     expect(modelContent, contains('UserProfileModel copyWith('));
     expect(modelContent, contains('class AddressModel extends AddressEntity'));
+  });
+
+  test(
+      'bclean init auto-discovers existing features in lib/features/ and registers them',
+      () async {
+    // Create feature first (which also auto-runs init if missing)
+    await runner.run([
+      'create',
+      'feature:auth',
+      '-p',
+      tempDir.path,
+    ]);
+
+    // Now re-run `bclean init --force` on top of existing features
+    final code = await runner.run(['init', '--force', '-p', tempDir.path]);
+    expect(code, 0);
+
+    final routerContent =
+        File(p.join(tempDir.path, 'lib', 'core', 'router', 'app_router.dart'))
+            .readAsStringSync();
+    expect(routerContent, contains("static const String initial = '/auth';"));
+    expect(routerContent, contains('auth: (_) => const AuthPage(),'));
+
+    final diContent =
+        File(p.join(tempDir.path, 'lib', 'injection_container.dart'))
+            .readAsStringSync();
+    expect(diContent, contains('AuthBloc'));
   });
 }
