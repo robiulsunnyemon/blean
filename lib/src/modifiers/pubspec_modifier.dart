@@ -14,13 +14,15 @@ class BcleanConfig {
 }
 
 /// Reads `bclean:` config from `pubspec.yaml` and automatically adds required
-/// Clean Architecture + BLoC dependencies (`flutter_bloc`, `equatable`, `dartz`, `get_it`).
+/// Clean Architecture + BLoC dependencies (`flutter_bloc`, `equatable`, `dartz`,
+/// `get_it`, `internet_connection_checker_plus`).
 class PubspecModifier {
   static const Map<String, String> requiredDependencies = {
     'flutter_bloc': '^8.1.5',
     'equatable': '^2.0.5',
     'dartz': '^0.10.1',
     'get_it': '^7.7.0',
+    'internet_connection_checker_plus': '^2.5.2',
   };
 
   /// Reads optional `bclean:` block from target project's `pubspec.yaml`.
@@ -50,7 +52,7 @@ class PubspecModifier {
     return const BcleanConfig();
   }
 
-  /// Ensures `flutter_bloc`, `equatable`, `dartz`, and `get_it` exist in `pubspec.yaml`.
+  /// Ensures required Clean Architecture packages exist in `pubspec.yaml`.
   static Future<List<String>> ensureDependencies(String projectDir) async {
     final pubspecPath = p.join(projectDir, 'pubspec.yaml');
     final pubspecFile = File(pubspecPath);

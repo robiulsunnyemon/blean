@@ -378,8 +378,15 @@ class FeatureGenerator {
         overwrite: overwrite,
         baseDir: projectDir,
       );
+      await DiModifier.registerStandaloneBloc(
+        projectDir: projectDir,
+        projectName: projectName,
+        feature: feature,
+        bloc: bloc,
+        useCubit: true,
+      );
       CliLogger.success(
-        'Cubit "${bloc.pascalCase}Cubit" created in feature "${feature.pascalCase}"!',
+        'Cubit "${bloc.pascalCase}Cubit" created and registered in DI for feature "${feature.pascalCase}"!',
       );
     } else {
       await FileHelper.writeFile(
@@ -412,8 +419,15 @@ class FeatureGenerator {
         overwrite: overwrite,
         baseDir: projectDir,
       );
+      await DiModifier.registerStandaloneBloc(
+        projectDir: projectDir,
+        projectName: projectName,
+        feature: feature,
+        bloc: bloc,
+        useCubit: false,
+      );
       CliLogger.success(
-        'BLoC "${bloc.pascalCase}Bloc" created in feature "${feature.pascalCase}"!',
+        'BLoC "${bloc.pascalCase}Bloc" created and registered in DI for feature "${feature.pascalCase}"!',
       );
     }
   }
@@ -435,7 +449,8 @@ class FeatureGenerator {
       p.join(featureDir, 'presentation', 'pages', '${page.snakeCase}_page.dart'),
       PresentationTemplates.page(
         projectName,
-        page,
+        feature,
+        pageName: page,
         useCubit: useCubit,
         isList: isList,
       ),

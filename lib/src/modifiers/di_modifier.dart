@@ -4,7 +4,7 @@ import '../utils/logger.dart';
 import '../utils/string_case.dart';
 
 /// Modifies `lib/injection_container.dart` to automatically register newly
-/// created features (BLoC/Cubit, UseCases, Repository, DataSources).
+/// created features (BLoC/Cubit, UseCases, Repository, DataSources) or standalone BLoCs/Cubits.
 class DiModifier {
   static const String _importMarker = '// [BCLEAN_IMPORTS]';
   static const String _featureMarker = '// [BCLEAN_FEATURES]';
@@ -34,7 +34,8 @@ class DiModifier {
     final stateFile = useCubit ? '${snake}_cubit.dart' : '${snake}_bloc.dart';
 
     // Avoid duplicate registration
-    if (content.contains('registerFactory(() => $stateClass(')) {
+    if (content.contains('registerFactory(\n    () => $stateClass(') ||
+        content.contains('registerFactory(() => $stateClass(')) {
       return;
     }
 
@@ -92,6 +93,65 @@ $localRepoArg      networkInfo: sl(),
       CliLogger.warn(
         'Markers not found in lib/injection_container.dart. Skipping auto-DI registration.',
       );
+    }
+  }
+
+  /// Registers a standalone BLoC or Cubit created via `bclean c bloc:<name> on <feature>`.
+  static Future<void> registerStandaloneBloc({
+    required String projectDir,
+    required String projectName,
+    required StringCase feature,
+    required StringCase bloc,
+    required bool useCubit,
+  }) async {
+    final diPath = p.join(projectDir, 'lib', 'injection_container.dart');
+    final diFile = File(diPath);
+    if (!await diFile.exists()) {
+      return;
+    }
+
+    var content = await diFile.readAsString();
+    final featurePascal = feature.pascalCase;
+    final featureSnake = feature.snakeCase;
+    final blocPascal = bloc.pascalCase;
+    final blocSnake = bloc.snakeCase;
+    final stateClass = useCubit ? '${blocPascal}Cubit' : '${blocPascal}Bloc';
+    final stateFolder = useCubit ? 'cubit' : 'bloc';
+    final stateFile =
+        useCubit ? '${blocSnake}_cubit.dart' : '${blocSnake}_bloc.dart';
+
+    if (content.contains('$stateClass(')) {
+      return;
+    }
+
+    final importLine =
+        "import 'package:$projectName/features/$featureSnake/presentation/$stateFolder/$stateFile';";
+    final registrationBlock = '''  sl.registerFactory(
+    () => $stateClass(
+      get${featurePascal}UseCase: sl(),
+    ),
+  );''';
+
+    var updated = false;
+    if (!content.contains(importLine) && content.contains(_importMarker)) {
+      content = content.replaceFirst(
+        _importMarker,
+        '$importLine\n$_importMarker',
+      );
+      updated = true;
+    }
+
+    if (content.contains(_featureMarker)) {
+      content = content.replaceFirst(
+        _featureMarker,
+        '$registrationBlock\n  $_featureMarker',
+      );
+      updated = true;
+    }
+
+    if (updated) {
+      await diFile.writeAsString(content);
+      CliLogger.modified(p.relative(diPath, from: projectDir));
     }
   }
 }

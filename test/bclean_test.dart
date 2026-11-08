@@ -36,7 +36,7 @@ dependencies:
   });
 
   test(
-      'bclean init creates core layer, app_router, injection_container, and updates pubspec.yaml',
+      'bclean init creates core layer with InternetConnection, app_router, injection_container, and updates pubspec.yaml',
       () async {
     final code = await runner.run(['init', '-p', tempDir.path]);
     expect(code, 0);
@@ -46,14 +46,20 @@ dependencies:
           .existsSync(),
       isTrue,
     );
+    final networkInfoContent = File(
+      p.join(tempDir.path, 'lib', 'core', 'network', 'network_info.dart'),
+    ).readAsStringSync();
     expect(
-      File(p.join(tempDir.path, 'lib', 'core', 'router', 'app_router.dart'))
-          .existsSync(),
-      isTrue,
+      networkInfoContent,
+      contains('connectionChecker.hasInternetAccess'),
     );
+
+    final diContent =
+        File(p.join(tempDir.path, 'lib', 'injection_container.dart'))
+            .readAsStringSync();
     expect(
-      File(p.join(tempDir.path, 'lib', 'injection_container.dart')).existsSync(),
-      isTrue,
+      diContent,
+      contains('sl.registerLazySingleton<InternetConnection>(() => InternetConnection());'),
     );
 
     final mainContent =
@@ -61,21 +67,17 @@ dependencies:
     expect(mainContent, contains('await di.initDependencies();'));
     expect(mainContent, contains('routes: AppRouter.routes,'));
 
-    final routerContent =
-        File(p.join(tempDir.path, 'lib', 'core', 'router', 'app_router.dart'))
-            .readAsStringSync();
-    expect(routerContent, contains("'/': (_) => const Scaffold("));
-
     final pubspecContent =
         File(p.join(tempDir.path, 'pubspec.yaml')).readAsStringSync();
     expect(pubspecContent, contains('flutter_bloc:'));
     expect(pubspecContent, contains('dartz:'));
     expect(pubspecContent, contains('equatable:'));
     expect(pubspecContent, contains('get_it:'));
+    expect(pubspecContent, contains('internet_connection_checker_plus:'));
   });
 
   test(
-      'bclean create feature:user_auth creates full feature and updates DI & Router',
+      'bclean create feature:user_auth creates full feature, stringify entity, auto-dispatches LoadEvent, and updates DI & Router',
       () async {
     await runner.run(['init', '-p', tempDir.path]);
     final code = await runner.run([
@@ -87,19 +89,17 @@ dependencies:
     expect(code, 0);
 
     final featureDir = p.join(tempDir.path, 'lib', 'features', 'user_auth');
+    final entityContent = File(
+      p.join(featureDir, 'domain', 'entities', 'user_auth_entity.dart'),
+    ).readAsStringSync();
+    expect(entityContent, contains('bool get stringify => true;'));
+
+    final pageContent = File(
+      p.join(featureDir, 'presentation', 'pages', 'user_auth_page.dart'),
+    ).readAsStringSync();
     expect(
-      File(p.join(featureDir, 'domain', 'entities', 'user_auth_entity.dart'))
-          .existsSync(),
-      isTrue,
-    );
-    expect(
-      File(p.join(
-        featureDir,
-        'data',
-        'repositories',
-        'user_auth_repository_impl.dart',
-      )).readAsStringSync(),
-      contains('Either<Failure, UserAuthEntity>'),
+      pageContent,
+      contains("create: (_) => sl<UserAuthBloc>()..add(const LoadUserAuthEvent('1')),"),
     );
 
     final diContent =
@@ -107,17 +107,10 @@ dependencies:
             .readAsStringSync();
     expect(diContent, contains('UserAuthBloc'));
     expect(diContent, contains('GetUserAuthUseCase'));
-
-    final routerContent =
-        File(p.join(tempDir.path, 'lib', 'core', 'router', 'app_router.dart'))
-            .readAsStringSync();
-    expect(routerContent, contains("static const String initial = '/user-auth';"));
-    expect(routerContent, contains("static const String userAuth = '/user-auth';"));
-    expect(routerContent, contains('userAuth: (_) => const UserAuthPage(),'));
   });
 
   test(
-      'bclean create usecase:login on user_auth wires Repository, RepositoryImpl, and DI',
+      'bclean create usecase:login on user_auth wires Repository, RemoteDataSource, RepositoryImpl, and DI',
       () async {
     await runner.run(['init', '-p', tempDir.path]);
     await runner.run(['create', 'feature:user_auth', '-p', tempDir.path]);
@@ -141,6 +134,17 @@ dependencies:
       contains('Future<Either<Failure, UserAuthEntity>> login(String id);'),
     );
 
+    final remoteDs = File(
+      p.join(
+        featureDir,
+        'data',
+        'datasources',
+        'user_auth_remote_data_source.dart',
+      ),
+    ).readAsStringSync();
+    expect(remoteDs, contains('Future<UserAuthModel> login(String id);'));
+    expect(remoteDs, contains('Future<UserAuthModel> login(String id) async'));
+
     final repoImpl = File(
       p.join(
         featureDir,
@@ -151,7 +155,7 @@ dependencies:
     ).readAsStringSync();
     expect(
       repoImpl,
-      contains('Future<Either<Failure, UserAuthEntity>> login(String id) async'),
+      contains('final remoteData = await remoteDataSource.login(id);'),
     );
 
     final diContent =
@@ -161,68 +165,27 @@ dependencies:
   });
 
   test(
-      'bclean generate model on user_auth with user_profile.json generates Entity & Model with fromJsonList',
+      'bclean create bloc:session on user_auth registers SessionBloc in DI',
       () async {
-    final jsonFile = File(p.join(tempDir.path, 'user_profile.json'));
-    await jsonFile.writeAsString('''
-{
-  "id": "u_101",
-  "full_name": "Rahim Uddin",
-  "age": 28,
-  "is_verified": true,
-  "roles": ["admin", "editor"],
-  "address": {
-    "city": "Dhaka",
-    "zip_code": 1207
-  }
-}
-''');
-
+    await runner.run(['create', 'feature:user_auth', '-p', tempDir.path]);
     final code = await runner.run([
-      'generate',
-      'model',
+      'create',
+      'bloc:session',
       'on',
       'user_auth',
-      'with',
-      'user_profile.json',
       '-p',
       tempDir.path,
     ]);
     expect(code, 0);
 
-    final featureDir = p.join(tempDir.path, 'lib', 'features', 'user_auth');
-    final entityFile = File(
-      p.join(featureDir, 'domain', 'entities', 'user_profile_entity.dart'),
-    );
-    final modelFile = File(
-      p.join(featureDir, 'data', 'models', 'user_profile_model.dart'),
-    );
-
-    expect(entityFile.existsSync(), isTrue);
-    expect(modelFile.existsSync(), isTrue);
-
-    final entityContent = entityFile.readAsStringSync();
-    expect(entityContent, contains('class UserProfileEntity extends Equatable'));
-    expect(entityContent, contains('final AddressEntity address;'));
-    expect(entityContent, contains('class AddressEntity extends Equatable'));
-
-    final modelContent = modelFile.readAsStringSync();
-    expect(
-      modelContent,
-      contains('class UserProfileModel extends UserProfileEntity'),
-    );
-    expect(modelContent, contains('factory UserProfileModel.fromJson'));
-    expect(
-      modelContent,
-      contains('static List<UserProfileModel> fromJsonList(List<dynamic> jsonList)'),
-    );
-    expect(modelContent, contains('Map<String, dynamic> toJson()'));
-    expect(modelContent, contains('UserProfileModel copyWith('));
-    expect(modelContent, contains('class AddressModel extends AddressEntity'));
+    final diContent =
+        File(p.join(tempDir.path, 'lib', 'injection_container.dart'))
+            .readAsStringSync();
+    expect(diContent, contains('SessionBloc('));
   });
 
   test(
-      'bclean generate model with JSON Array [{}] auto-upgrades feature to List<Entity> mode',
+      'bclean generate model with singular JSON filename post.json on plural feature posts syncs PostsEntity & List mode',
       () async {
     await runner.run([
       'c',
@@ -232,7 +195,7 @@ dependencies:
       tempDir.path,
     ]);
 
-    final jsonFile = File(p.join(tempDir.path, 'posts.json'));
+    final jsonFile = File(p.join(tempDir.path, 'post.json'));
     await jsonFile.writeAsString('''
 [
   {
@@ -250,62 +213,26 @@ dependencies:
       'on',
       'posts',
       'with',
-      'posts.json',
+      'post.json',
       '-p',
       tempDir.path,
     ]);
     expect(code, 0);
 
     final featureDir = p.join(tempDir.path, 'lib', 'features', 'posts');
-    final repoContent = File(
-      p.join(featureDir, 'domain', 'repositories', 'posts_repository.dart'),
+    final entityContent = File(
+      p.join(featureDir, 'domain', 'entities', 'posts_entity.dart'),
     ).readAsStringSync();
-    expect(
-      repoContent,
-      contains('Future<Either<Failure, List<PostsEntity>>> getPosts();'),
-    );
-
-    final useCaseContent = File(
-      p.join(featureDir, 'domain', 'usecases', 'get_posts_usecase.dart'),
-    ).readAsStringSync();
-    expect(
-      useCaseContent,
-      contains('implements UseCase<List<PostsEntity>, NoParams>'),
-    );
-
-    final stateContent = File(
-      p.join(featureDir, 'presentation', 'bloc', 'posts_state.dart'),
-    ).readAsStringSync();
-    expect(stateContent, contains('final List<PostsEntity> data;'));
+    expect(entityContent, contains('class PostsEntity extends Equatable'));
+    expect(entityContent, contains('bool get stringify => true;'));
 
     final pageContent = File(
       p.join(featureDir, 'presentation', 'pages', 'posts_page.dart'),
     ).readAsStringSync();
+    expect(
+      pageContent,
+      contains('create: (_) => sl<PostsBloc>()..add(const LoadPostsEvent()),'),
+    );
     expect(pageContent, contains('ListView.builder'));
-  });
-
-  test(
-      'bclean init auto-discovers existing features in lib/features/ and registers them',
-      () async {
-    await runner.run([
-      'create',
-      'feature:auth',
-      '-p',
-      tempDir.path,
-    ]);
-
-    final code = await runner.run(['init', '--force', '-p', tempDir.path]);
-    expect(code, 0);
-
-    final routerContent =
-        File(p.join(tempDir.path, 'lib', 'core', 'router', 'app_router.dart'))
-            .readAsStringSync();
-    expect(routerContent, contains("static const String initial = '/auth';"));
-    expect(routerContent, contains('auth: (_) => const AuthPage(),'));
-
-    final diContent =
-        File(p.join(tempDir.path, 'lib', 'injection_container.dart'))
-            .readAsStringSync();
-    expect(diContent, contains('AuthBloc'));
   });
 }

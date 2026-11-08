@@ -3,8 +3,8 @@ import 'package:path/path.dart' as p;
 import '../utils/logger.dart';
 import '../utils/string_case.dart';
 
-/// Updates Domain Repository Interface, Data Repository Implementation, and DI
-/// when a new UseCase is created via `bclean create usecase:<name> on <feature>`.
+/// Updates Domain Repository Interface, Data RemoteDataSource, Data Repository Implementation,
+/// and DI when a new UseCase is created via `bclean create usecase:<name> on <feature>`.
 class RepositoryModifier {
   static Future<void> injectUseCase({
     required String projectDir,
@@ -18,9 +18,15 @@ class RepositoryModifier {
     final methodCamel = useCase.camelCase;
     final useCasePascal = useCase.pascalCase;
     final useCaseSnake = useCase.snakeCase;
-    final returnType =
+    final entityReturnType =
         isList ? 'List<${featurePascal}Entity>' : '${featurePascal}Entity';
+    final modelReturnType =
+        isList ? 'List<${featurePascal}Model>' : '${featurePascal}Model';
     final params = isList ? '' : 'String id';
+    final callArgs = isList ? '' : 'id';
+    final placeholderReturn = isList
+        ? '${featurePascal}Model.fromJsonList(const [])'
+        : '${featurePascal}Model.fromJson(const {})';
 
     final featureDir = p.join(projectDir, 'lib', 'features', featureSnake);
 
@@ -35,7 +41,7 @@ class RepositoryModifier {
     if (await repoInterfaceFile.exists()) {
       var content = await repoInterfaceFile.readAsString();
       final methodSignature =
-          'Future<Either<Failure, $returnType>> $methodCamel($params);';
+          'Future<Either<Failure, $entityReturnType>> $methodCamel($params);';
       if (!content.contains('$methodCamel(')) {
         final lastBrace = content.lastIndexOf('}');
         if (lastBrace != -1) {
@@ -49,7 +55,54 @@ class RepositoryModifier {
       }
     }
 
-    // 2. Update Data Repository Implementation
+    // 2. Update Data RemoteDataSource (Interface + Implementation)
+    final remoteDsPath = p.join(
+      featureDir,
+      'data',
+      'datasources',
+      '${featureSnake}_remote_data_source.dart',
+    );
+    final remoteDsFile = File(remoteDsPath);
+    if (await remoteDsFile.exists()) {
+      var dsContent = await remoteDsFile.readAsString();
+      if (!dsContent.contains('$methodCamel(')) {
+        final implIndex =
+            dsContent.indexOf('class ${featurePascal}RemoteDataSourceImpl');
+        if (implIndex != -1) {
+          final abstractClosingBrace = dsContent.lastIndexOf('}', implIndex);
+          if (abstractClosingBrace != -1) {
+            final beforeAbstractBrace =
+                dsContent.substring(0, abstractClosingBrace);
+            final afterAbstractBrace =
+                dsContent.substring(abstractClosingBrace);
+            dsContent =
+                '${beforeAbstractBrace}  Future<$modelReturnType> $methodCamel($params);\n$afterAbstractBrace';
+          }
+        }
+
+        final lastBrace = dsContent.lastIndexOf('}');
+        if (lastBrace != -1) {
+          final dsMethodImpl = '''
+
+  @override
+  Future<$modelReturnType> $methodCamel($params) async {
+    try {
+      // TODO: Replace with actual API call
+      return $placeholderReturn;
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+}
+''';
+          dsContent = dsContent.substring(0, lastBrace).trimRight() + dsMethodImpl;
+          await remoteDsFile.writeAsString(dsContent);
+          CliLogger.modified(p.relative(remoteDsPath, from: projectDir));
+        }
+      }
+    }
+
+    // 3. Update Data Repository Implementation
     final repoImplPath = p.join(
       featureDir,
       'data',
@@ -59,16 +112,15 @@ class RepositoryModifier {
     final repoImplFile = File(repoImplPath);
     if (await repoImplFile.exists()) {
       var content = await repoImplFile.readAsString();
-      if (!content.contains('Future<Either<Failure, $returnType>> $methodCamel(')) {
+      if (!content
+          .contains('Future<Either<Failure, $entityReturnType>> $methodCamel(')) {
         final lastBrace = content.lastIndexOf('}');
         if (lastBrace != -1) {
-          final remoteCall = isList
-              ? 'await remoteDataSource.get$featurePascal()'
-              : 'await remoteDataSource.get$featurePascal(id)';
+          final remoteCall = 'await remoteDataSource.$methodCamel($callArgs)';
           final methodImpl = '''
 
   @override
-  Future<Either<Failure, $returnType>> $methodCamel($params) async {
+  Future<Either<Failure, $entityReturnType>> $methodCamel($params) async {
     if (await networkInfo.isConnected) {
       try {
         final remoteData = $remoteCall;
@@ -89,7 +141,7 @@ class RepositoryModifier {
       }
     }
 
-    // 3. Register UseCase in injection_container.dart
+    // 4. Register UseCase in injection_container.dart
     final diPath = p.join(projectDir, 'lib', 'injection_container.dart');
     final diFile = File(diPath);
     if (await diFile.exists()) {

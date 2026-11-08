@@ -202,15 +202,28 @@ class ${cubitPascal}Cubit extends Cubit<${cubitPascal}State> {
   static String page(
     String projectName,
     StringCase feature, {
+    StringCase? pageName,
     bool useCubit = false,
     bool isList = false,
   }) {
-    final pascal = feature.pascalCase;
-    final snake = feature.snakeCase;
-    final title = feature.titleCase;
-    final stateClass = useCubit ? '${pascal}Cubit' : '${pascal}Bloc';
+    final featurePascal = feature.pascalCase;
+    final featureSnake = feature.snakeCase;
+    final targetPage = pageName ?? feature;
+    final pagePascal = targetPage.pascalCase;
+    final title = targetPage.titleCase;
+    final stateClass =
+        useCubit ? '${featurePascal}Cubit' : '${featurePascal}Bloc';
     final stateFolder = useCubit ? 'cubit' : 'bloc';
-    final stateFile = useCubit ? '${snake}_cubit.dart' : '${snake}_bloc.dart';
+    final stateFile =
+        useCubit ? '${featureSnake}_cubit.dart' : '${featureSnake}_bloc.dart';
+
+    final initialTrigger = useCubit
+        ? (isList
+            ? '..load$featurePascal()'
+            : "..load$featurePascal('1')")
+        : (isList
+            ? '..add(const Load${featurePascal}Event())'
+            : "..add(const Load${featurePascal}Event('1'))");
 
     final loadedWidget = isList
         ? '''if (state.data.isEmpty) {
@@ -230,27 +243,27 @@ class ${cubitPascal}Cubit extends Cubit<${cubitPascal}State> {
     return '''
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:$projectName/features/$snake/presentation/$stateFolder/$stateFile';
+import 'package:$projectName/features/$featureSnake/presentation/$stateFolder/$stateFile';
 import 'package:$projectName/injection_container.dart';
 
-class ${pascal}Page extends StatelessWidget {
-  const ${pascal}Page({super.key});
+class ${pagePascal}Page extends StatelessWidget {
+  const ${pagePascal}Page({super.key});
 
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => sl<$stateClass>(),
+      create: (_) => sl<$stateClass>()$initialTrigger,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('$title'),
         ),
-        body: BlocBuilder<$stateClass, ${pascal}State>(
+        body: BlocBuilder<$stateClass, ${featurePascal}State>(
           builder: (context, state) {
-            if (state is ${pascal}Loading) {
+            if (state is ${featurePascal}Loading) {
               return const Center(child: CircularProgressIndicator());
-            } else if (state is ${pascal}Loaded) {
+            } else if (state is ${featurePascal}Loaded) {
               $loadedWidget
-            } else if (state is ${pascal}Error) {
+            } else if (state is ${featurePascal}Error) {
               return Center(child: Text('Error: \${state.message}'));
             }
             return const Center(child: Text('$title Initial State'));

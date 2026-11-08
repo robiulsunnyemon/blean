@@ -1,3 +1,18 @@
+## 0.1.4
+
+- **Real Internet Connectivity Check (`internet_connection_checker_plus`)**:
+  - `bclean init` now adds `internet_connection_checker_plus` to `pubspec.yaml`, registers `InternetConnection` in `injection_container.dart`, and implements `NetworkInfoImpl.isConnected` using `connectionChecker.hasInternetAccess`.
+- **Auto-Dispatch Initial Load Event in Pages**:
+  - Generated Pages now automatically trigger `..add(const Load<Feature>Event(...))` (for BLoC) or `..load<Feature>(...)` (for Cubit) inside `BlocProvider`, so opening a page immediately loads data without staying stuck on the initial state.
+- **Readable Entity Output (`stringify => true`)**:
+  - Added `@override bool get stringify => true;` to all generated `Equatable` Entities and Models so `item.toString()` displays all field values cleanly in UI lists.
+- **Full UseCase Auto-Wiring Across All Layers**:
+  - `bclean create usecase:<name> on <feature>` now also injects the method signature and `@override` implementation into `<feature>_remote_data_source.dart` in addition to `Repository`, `RepositoryImpl`, and `injection_container.dart`.
+- **Standalone BLoC/Cubit Auto-DI Registration**:
+  - `bclean create bloc:<name> on <feature>` and `bclean create cubit:<name> on <feature>` now automatically register the new BLoC/Cubit in `lib/injection_container.dart`.
+- **Smart Singular/Plural JSON Model Sync**:
+  - `bclean generate model` automatically maps singular/plural JSON filenames (e.g., `post.json` on feature `posts`) to the feature's primary Entity and Model when `--name` is not specified.
+
 ## 0.1.3
 
 - **Single Item & JSON List Support (`--list` / `-l`)**:

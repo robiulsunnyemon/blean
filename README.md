@@ -10,8 +10,8 @@ A fast, **`get_cli`-inspired CLI tool** for Flutter & Dart to scaffold **Clean A
 
 ## ✨ Key Features
 
-- ⚡ **One-Command Project Setup (`bclean init`)**: Scaffolds `core/` (`failures`, `exceptions`, `usecase`, `network_info`, `app_router`), `injection_container.dart`, automatically configures `main.dart` with `await di.initDependencies()`, and adds required packages to `pubspec.yaml`.
-- 🏗️ **Full Feature Scaffolding (`bclean create feature:<name>`)**: Generates all 3 Clean Architecture layers (**Domain**, **Data**, **Presentation**) in seconds.
+- ⚡ **One-Command Project Setup (`bclean init`)**: Scaffolds `core/` (`failures`, `exceptions`, `usecase`, `network_info` with real connectivity check via `internet_connection_checker_plus`, `app_router`), `injection_container.dart`, automatically configures `main.dart` with `await di.initDependencies()`, and adds required packages to `pubspec.yaml`.
+- 🏗️ **Full Feature Scaffolding (`bclean create feature:<name>`)**: Generates all 3 Clean Architecture layers (**Domain**, **Data**, **Presentation**) in seconds, with automatic initial event/load dispatch (`..add(const Load<Feature>Event())`) in generated Pages.
 - 📋 **Single Item & JSON List Support (`--list` / Auto-Detect)**:
   - Supports both **Single Object (`Entity`)** and **List of Objects (`List<Entity>`)** across DataSources, Repositories, UseCases (`NoParams`), BLoC/Cubit States, and `ListView.builder` Pages.
   - Every generated Model includes both `fromJson(Map<String, dynamic>)` and `fromJsonList(List<dynamic>)`.

@@ -62,21 +62,25 @@ class NoParams extends Equatable {
 ''';
 
   static String networkInfo() => '''
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
+
 abstract class NetworkInfo {
   Future<bool> get isConnected;
 }
 
 class NetworkInfoImpl implements NetworkInfo {
+  final InternetConnection connectionChecker;
+
+  const NetworkInfoImpl(this.connectionChecker);
+
   @override
-  Future<bool> get isConnected async {
-    // TODO: Implement actual connectivity check (e.g., internet_connection_checker)
-    return true;
-  }
+  Future<bool> get isConnected => connectionChecker.hasInternetAccess;
 }
 ''';
 
   static String injectionContainer(String projectName) => '''
 import 'package:get_it/get_it.dart';
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:$projectName/core/network/network_info.dart';
 // [BCLEAN_IMPORTS]
 
@@ -84,7 +88,8 @@ final sl = GetIt.instance;
 
 Future<void> initDependencies() async {
   // Core
-  sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl());
+  sl.registerLazySingleton<InternetConnection>(() => InternetConnection());
+  sl.registerLazySingleton<NetworkInfo>(() => NetworkInfoImpl(sl()));
 
   // [BCLEAN_FEATURES]
 }

@@ -77,10 +77,23 @@ class JsonModelGenerator {
     }
 
     final isListMode = forceList ?? isJsonArray;
-    final inferredName =
-        customModelName ?? p.basenameWithoutExtension(file.path);
-    final rootName = StringCase(inferredName);
     final feature = StringCase(featureRawName);
+    final featureDir = p.join(projectDir, 'lib', 'features', feature.snakeCase);
+
+    final inferredRaw =
+        customModelName ?? p.basenameWithoutExtension(file.path);
+    var rootName = StringCase(inferredRaw);
+
+    // Fix 6: If `--name` was not explicitly provided and the JSON filename is a
+    // singular/plural variant of the feature name (e.g. `post.json` on feature `posts`),
+    // automatically use the feature's name (`posts`) so existing feature imports stay in sync!
+    if (customModelName == null &&
+        rootName.snakeCase != feature.snakeCase &&
+        ('${rootName.snakeCase}s' == feature.snakeCase ||
+            rootName.snakeCase == '${feature.snakeCase}s')) {
+      rootName = feature;
+    }
+
     final projectName = FileHelper.getProjectName(projectDir);
 
     CliLogger.info(
@@ -89,8 +102,6 @@ class JsonModelGenerator {
 
     final classes = <_ClassDef>[];
     _collectClasses(rootName, rootMap, classes);
-
-    final featureDir = p.join(projectDir, 'lib', 'features', feature.snakeCase);
 
     if (!skipEntity) {
       final entityPath = p.join(
@@ -128,7 +139,7 @@ class JsonModelGenerator {
       baseDir: projectDir,
     );
 
-    // If the model name matches the feature name (e.g. `posts.json` on feature `posts`)
+    // If the model name matches the feature name (e.g. `posts.json` or `post.json` on feature `posts`)
     // and the JSON root is a List (or `--list` was passed), automatically sync
     // the feature's DataSource, Repository, UseCase, BLoC/Cubit, and Page!
     if (!skipEntity &&
@@ -257,6 +268,9 @@ class JsonModelGenerator {
       }
       buffer.writeln('  });');
       buffer.writeln();
+      buffer.writeln('  @override');
+      buffer.writeln('  bool get stringify => true;');
+      buffer.writeln();
       final propsList = cls.fields.map((f) => f.fieldName).join(', ');
       buffer.writeln('  @override');
       buffer.writeln('  List<Object?> get props => [$propsList];');
@@ -367,6 +381,9 @@ class JsonModelGenerator {
 
       if (!extendsEntity) {
         final propsList = cls.fields.map((f) => f.fieldName).join(', ');
+        buffer.writeln();
+        buffer.writeln('  @override');
+        buffer.writeln('  bool get stringify => true;');
         buffer.writeln();
         buffer.writeln('  @override');
         buffer.writeln('  List<Object?> get props => [$propsList];');
