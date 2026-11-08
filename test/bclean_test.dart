@@ -59,7 +59,8 @@ dependencies:
             .readAsStringSync();
     expect(
       diContent,
-      contains('sl.registerLazySingleton<InternetConnection>(() => InternetConnection());'),
+      contains(
+          'sl.registerLazySingleton<InternetConnection>(() => InternetConnection());'),
     );
 
     final mainContent =
@@ -99,7 +100,8 @@ dependencies:
     ).readAsStringSync();
     expect(
       pageContent,
-      contains("create: (_) => sl<UserAuthBloc>()..add(const LoadUserAuthEvent('1')),"),
+      contains(
+          "create: (_) => sl<UserAuthBloc>()..add(const LoadUserAuthEvent('1')),"),
     );
 
     final diContent =
@@ -164,8 +166,7 @@ dependencies:
     expect(diContent, contains('LoginUseCase(sl())'));
   });
 
-  test(
-      'bclean create bloc:session on user_auth registers SessionBloc in DI',
+  test('bclean create bloc:session on user_auth registers SessionBloc in DI',
       () async {
     await runner.run(['create', 'feature:user_auth', '-p', tempDir.path]);
     final code = await runner.run([

@@ -63,7 +63,8 @@ dependencies:
       tempProject.path,
     ]);
 
-    stdout.writeln('\nDemo project successfully generated at: ${tempProject.path}');
+    stdout.writeln(
+        '\nDemo project successfully generated at: ${tempProject.path}');
   } finally {
     if (await tempProject.exists()) {
       await tempProject.delete(recursive: true);

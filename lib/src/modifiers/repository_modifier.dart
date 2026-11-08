@@ -45,8 +45,7 @@ class RepositoryModifier {
       if (!content.contains('$methodCamel(')) {
         final lastBrace = content.lastIndexOf('}');
         if (lastBrace != -1) {
-          content =
-              '${content.substring(0, lastBrace)}  $methodSignature\n}\n';
+          content = '${content.substring(0, lastBrace)}  $methodSignature\n}\n';
           await repoInterfaceFile.writeAsString(content);
           CliLogger.modified(
             p.relative(repoInterfacePath, from: projectDir),
@@ -76,7 +75,7 @@ class RepositoryModifier {
             final afterAbstractBrace =
                 dsContent.substring(abstractClosingBrace);
             dsContent =
-                '${beforeAbstractBrace}  Future<$modelReturnType> $methodCamel($params);\n$afterAbstractBrace';
+                '$beforeAbstractBrace  Future<$modelReturnType> $methodCamel($params);\n$afterAbstractBrace';
           }
         }
 
@@ -95,7 +94,8 @@ class RepositoryModifier {
   }
 }
 ''';
-          dsContent = dsContent.substring(0, lastBrace).trimRight() + dsMethodImpl;
+          dsContent =
+              dsContent.substring(0, lastBrace).trimRight() + dsMethodImpl;
           await remoteDsFile.writeAsString(dsContent);
           CliLogger.modified(p.relative(remoteDsPath, from: projectDir));
         }
@@ -112,8 +112,8 @@ class RepositoryModifier {
     final repoImplFile = File(repoImplPath);
     if (await repoImplFile.exists()) {
       var content = await repoImplFile.readAsString();
-      if (!content
-          .contains('Future<Either<Failure, $entityReturnType>> $methodCamel(')) {
+      if (!content.contains(
+          'Future<Either<Failure, $entityReturnType>> $methodCamel(')) {
         final lastBrace = content.lastIndexOf('}');
         if (lastBrace != -1) {
           final remoteCall = 'await remoteDataSource.$methodCamel($callArgs)';

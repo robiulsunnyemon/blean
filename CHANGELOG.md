@@ -1,3 +1,7 @@
+## 0.1.5
+
+- Resolved static analysis lint (`unnecessary_brace_in_string_interps`) and formatted all source files with `dart format` for full 160/160 pub.dev score.
+
 ## 0.1.4
 
 - **Real Internet Connectivity Check (`internet_connection_checker_plus`)**:

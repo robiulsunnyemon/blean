@@ -16,9 +16,8 @@ class PresentationTemplates {
     final useCaseImport = isList
         ? "import 'package:$projectName/core/usecases/usecase.dart';\n"
         : '';
-    final useCaseCall = isList
-        ? 'const NoParams()'
-        : 'Get${featurePascal}Params(id: event.id)';
+    final useCaseCall =
+        isList ? 'const NoParams()' : 'Get${featurePascal}Params(id: event.id)';
 
     return '''
 import 'package:equatable/equatable.dart';
@@ -166,9 +165,8 @@ class ${pascal}Error extends ${pascal}State {
         ? "import 'package:$projectName/core/usecases/usecase.dart';\n"
         : '';
     final methodParam = isList ? '' : 'String id';
-    final useCaseCall = isList
-        ? 'const NoParams()'
-        : 'Get${featurePascal}Params(id: id)';
+    final useCaseCall =
+        isList ? 'const NoParams()' : 'Get${featurePascal}Params(id: id)';
 
     return '''
 import 'package:equatable/equatable.dart';
@@ -218,9 +216,7 @@ class ${cubitPascal}Cubit extends Cubit<${cubitPascal}State> {
         useCubit ? '${featureSnake}_cubit.dart' : '${featureSnake}_bloc.dart';
 
     final initialTrigger = useCubit
-        ? (isList
-            ? '..load$featurePascal()'
-            : "..load$featurePascal('1')")
+        ? (isList ? '..load$featurePascal()' : "..load$featurePascal('1')")
         : (isList
             ? '..add(const Load${featurePascal}Event())'
             : "..add(const Load${featurePascal}Event('1'))");

@@ -79,8 +79,9 @@ class ${pascal}RemoteDataSourceImpl implements ${pascal}RemoteDataSource {
     final pascal = feature.pascalCase;
     final snake = feature.snakeCase;
     final returnType = isList ? 'List<${pascal}Model>' : '${pascal}Model';
-    final cacheParam =
-        isList ? 'List<${pascal}Model> modelsToCache' : '${pascal}Model modelToCache';
+    final cacheParam = isList
+        ? 'List<${pascal}Model> modelsToCache'
+        : '${pascal}Model modelToCache';
     final placeholderReturn = isList
         ? '${pascal}Model.fromJsonList(const [])'
         : '${pascal}Model.fromJson(const {})';
@@ -133,9 +134,8 @@ class ${pascal}LocalDataSourceImpl implements ${pascal}LocalDataSource {
     final localField = includeLocal
         ? '  final ${pascal}LocalDataSource localDataSource;\n'
         : '';
-    final localCtorParam = includeLocal
-        ? '    required this.localDataSource,\n'
-        : '';
+    final localCtorParam =
+        includeLocal ? '    required this.localDataSource,\n' : '';
     final cacheCall = includeLocal
         ? '        await localDataSource.cache$pascal(remoteData);\n'
         : '';

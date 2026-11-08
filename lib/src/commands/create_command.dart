@@ -34,7 +34,8 @@ class CreateCommand extends Command<int> {
         'list',
         abbr: 'l',
         negatable: false,
-        help: 'Generate feature/usecase/bloc/page for a List of items (List<Entity>).',
+        help:
+            'Generate feature/usecase/bloc/page for a List of items (List<Entity>).',
       )
       ..addFlag(
         'local',
@@ -43,12 +44,14 @@ class CreateCommand extends Command<int> {
       )
       ..addOption(
         'on',
-        help: 'Target feature name when creating a usecase, bloc, cubit, or page.',
+        help:
+            'Target feature name when creating a usecase, bloc, cubit, or page.',
       )
       ..addOption(
         'path',
         abbr: 'p',
-        help: 'Target Flutter project directory (defaults to current directory).',
+        help:
+            'Target Flutter project directory (defaults to current directory).',
       )
       ..addFlag(
         'force',

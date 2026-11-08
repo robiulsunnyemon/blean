@@ -15,7 +15,8 @@ class InitCommand extends Command<int> {
       ..addOption(
         'path',
         abbr: 'p',
-        help: 'Target Flutter project directory (defaults to current directory).',
+        help:
+            'Target Flutter project directory (defaults to current directory).',
       )
       ..addFlag(
         'force',
